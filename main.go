@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -100,8 +101,11 @@ func main() {
 	// настройте подключение к БД
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("failed to open database: %v", err)
 		return
+	}
+	if err := db.Ping(); err != nil {
+		log.Fatalf("database is not reachable: %v", err)
 	}
 
 	store := NewParcelStore(db) // создайте объект ParcelStore функцией NewParcelStore
