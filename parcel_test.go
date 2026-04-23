@@ -33,11 +33,11 @@ func TestAddGetDelete(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		t.Fatalf("failed to open database: %v", err)
 		return
 	}
 	if err := db.Ping(); err != nil {
-		log.Fatalf("database is not reachable: %v", err)
+		t.Fatalf("database is not reachable: %v", err)
 	}
 
 	store := NewParcelStore(db)
@@ -45,14 +45,76 @@ func TestAddGetDelete(t *testing.T) {
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
+	res, err := db.Exec("INSERT INTO parcel (client, status, address, created_at) VALUES (?, ?, ?, ?)", parcel.Client, parcel.Status, parcel.Address, parcel.CreatedAt)
+	if err != nil {
+		t.Fatalf("failed to add parcel: %v", err)
+	}
+	// 1. Get ID generate DB
+	id, err := res.LastInsertId()
+	if err != nil {
+		// This error get data from driver
+		t.Fatalf("failed to get last insert id: %v", err)
+	}
+	// 2. Check verify ID
+	if id <= 0 {
+		t.Fatal("error: database did not assign a valid ID")
+	}
+	// 3. Write get ID in structure
+	parcel.Number = int(id)
 
 	// get
 	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
+	var pGet Parcel
 
+	err = db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = ?", parcel.Number).Scan(
+		&pGet.Number,
+		&pGet.Client,
+		&pGet.Status,
+		&pGet.Address,
+		&pGet.CreatedAt,
+	)
+
+	if err != nil {
+		t.Fatalf("failed to get parcel: %v", err)
+	}
+
+	if pGet.Number != parcel.Number ||	
+	pGet.Client != parcel.Client || 
+	pGet.Status != parcel.Status || 
+	pGet.Address != parcel.Address || 
+	pGet.CreatedAt != parcel.CreatedAt {
+		t.Fatal("error: retrieved parcel data does not match original")
+	}
+	
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что посылку больше нельзя получить из БД
+	res, err := db.Exec("DELETE FROM parcel WHERE number = ?", parcel.Number)
+    if err != nil {
+        t.Fatalf("failed to delete parcel: %v", err)
+    }
+
+	rowsAffected, err := res.RowsAffected()
+    if err != nil {
+        t.Fatalf("could not get affected rows: %v", err)
+    }
+
+	if rowsAffected != 1 {
+        t.Fatalf("no parcel found with number %d", parcel.Number)
+    }
+
+	var pDelete Parcel
+	
+	err = db.QueryRow("SELECT number FROM parcel WHERE number = ?", parcel.Number).Scan(&pDelete.Number)
+
+	if err != sql.ErrNoRows {
+		if err == nil {
+			t.Fatal("error: parcel still exists in database after delete")
+		} else {
+			t.Fatalf("unexpected error while checking deletion: %v", err)
+		}
+	}
 }
 
 // TestSetAddress проверяет обновление адреса
