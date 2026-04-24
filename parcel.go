@@ -38,9 +38,9 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return p, fmt.Errorf("parcel with number %d not found: %w", number, err)
+			return Parcel{}, fmt.Errorf("parcel with number %d not found: %w", number, err)
 		}
-		return p, fmt.Errorf("failed to get parcel: %w", err)
+		return Parcel{}, fmt.Errorf("failed to get parcel: %w", err)
 	}
 
 	return p, nil
@@ -91,7 +91,7 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 
 func (s ParcelStore) SetAddress(number int, address string) error {
 	res, err := s.db.Exec("UPDATE parcel SET address = ? WHERE number = ? AND status = ?",
-		address, number, "registered")
+		address, number, ParcelStatusRegistered)
 
 	if err != nil {
 		return fmt.Errorf("failed to update address for parcel %d: %w", number, err)
@@ -110,7 +110,7 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 }
 
 func (s ParcelStore) Delete(number int) error {
-	res, err := s.db.Exec("DELETE FROM parcel WHERE number = ? AND status = ?", number, "registered")
+	res, err := s.db.Exec("DELETE FROM parcel WHERE number = ? AND status = ?", number, ParcelStatusRegistered)
 	if err != nil {
 		return fmt.Errorf("failed to delete parcel %d: %w", number, err)
 	}
