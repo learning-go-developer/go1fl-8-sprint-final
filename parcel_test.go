@@ -109,7 +109,7 @@ func TestSetStatus(t *testing.T) {
 	parcel.Number = id
 	// set status
 	// обновите статус, убедитесь в отсутствии ошибки
-	newStatus := "sent" // лучше использовать реалистичный статус
+	newStatus := ParcelStatusSent // лучше использовать реалистичный статус
 	err = store.SetStatus(parcel.Number, newStatus)
 	require.NoError(t, err)
 	// check
@@ -157,11 +157,12 @@ func TestGetByClient(t *testing.T) {
 	storedParcels, err := store.GetByClient(client)
 	require.NoError(t, err)
 	require.Equal(t, len(parcels), len(storedParcels), "count of parcels mismatch")
+	assert.Len(t, storedParcels, len(parcels), "count of parcels mismatch")
 
 	// check
 	for _, pGet := range storedParcels {
 		original, ok := parcelMap[pGet.Number]
-		require.True(t, ok, "parcel %d not found in original map", pGet.Number)
+		assert.True(t, ok, "parcel %d not found in original map", pGet.Number)
 		assert.Equal(t, original, pGet, "mismatch in parcel %d", pGet.Number)
 	}
 }
